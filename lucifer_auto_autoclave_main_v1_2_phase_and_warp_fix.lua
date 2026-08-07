@@ -1,18 +1,18 @@
 --[[
 =====================================================================
-LUCIFER AUTO AUTOCLAVE MAIN V1.2 PHASE + STRICT WARP FIX
+LUCIFER AUTO NANOFORGE MAIN V1.0
 Target: Lucifer v2.85 / v2.86
 
 WORLD:
-- Work    : PALCLA|RAPOL2
-- Storage : GIYUSEA|ITEM
+- Work    : PALTELE|RAPOL2
+- Storage : GIYUSEA|MOMOKS
 
 LAYOUT:
-- Autoclave        : (44,50)
-- Autoclave stand  : (44,51)
-- Buffer A         : (25,54) sampai (30,54)
-- Buffer B         : (54,54) sampai (59,54)
-- Safe storage     : (41,24) sampai (46,24)
+- Nanoforge        : (41,50)
+- Nanoforge stand  : (41,51)
+- Buffer A         : (25,53) sampai (30,53)
+- Buffer B         : (49,53) sampai (54,53)
+- Safe storage     : (70,23) sampai (75,23)
 
 FLOW:
 1. Ambil seluruh processing tools dari active buffer.
@@ -20,9 +20,9 @@ FLOW:
 3. Buat dynamic round-robin dari tool yang jumlahnya >= 20.
 4. Dynamic round-robin diulang terus selama masih ada source >=20.
 5. Setelah SEMUA processing tool di backpack sudah <20:
-   - warp GIYUSEA|ITEM
-   - drop Antibiotics, Scalpel, Sponge, Stitches
-   - kembali PALCLA|RAPOL2
+   - warp GIYUSEA|MOMOKS
+   - drop Teleporter Charge dan Tactical Drone
+   - kembali PALTELE|RAPOL2
 6. Jika ada reserve 50 di passive buffer, ambil reserve tersebut.
 7. Ulang round-robin sampai semua processing tool kembali <20.
 8. Warp storage sekali lagi untuk menyimpan protected tools.
@@ -30,34 +30,33 @@ FLOW:
 10. Tukar active/passive buffer dan menunggu batch berikutnya.
 
 STRICT WARP RECOVERY:
-- Work door tile    : PALCLA (44,53)
-- Storage door tile : GIYUSEA (40,23)
+- Work door tile    : PALTELE (41,53)
+- Storage door tile : GIYUSEA (70,23)
 - Nama world saja tidak dianggap cukup.
 - Jika reconnect membuat bot spawn di main door dan area kerja tidak dapat
   dijangkau, script keluar ke world lawan lalu warp ulang memakai door ID.
 
 PROCESSING TOOLS:
-- Surgical Anesthetic
-- Surgical Antiseptic
-- Surgical Clamp
-- Surgical Defibrillator
-- Surgical Lab Kit
-- Surgical Pins
-- Surgical Splint
-- Surgical Transfusion
-- Surgical Ultrasound
+- HyperShields
+- AI Brain
+- Galactibolt
+- Space Meds
+- Gigablaster
+- Quadriscanner
+- Stellar Documents
+- Star Supplies
+- Cyborg Diplomat
+- Growton Torpedo
 
 PROTECTED TOOLS:
-- Surgical Antibiotics
-- Surgical Scalpel
-- Surgical Sponge
-- Surgical Stitches
+- Teleporter Charge
+- Tactical Drone
 
 PENTING:
-- Script memakai raw packet Autoclave yang sudah terbukti pada mini-test.
+- Script memakai raw packet Nanoforge yang sudah terbukti pada mini-test.
 - Auto Collect hanya hidup saat sweep buffer.
 - Drop memakai batas lunak 3500 item per tile.
-- Jika hasil Autoclave tidak terverifikasi, script STOP dan tidak resend
+- Jika hasil Nanoforge tidak terverifikasi, script STOP dan tidak resend
   secara membabi buta.
 - Uji pertama sebaiknya memakai jumlah kecil. Dunia memang suka menemukan
   bug tepat setelah seseorang berkata "harusnya langsung lancar".
@@ -69,39 +68,39 @@ PENTING:
 ---------------------------------------------------------------------
 
 local C = {
-    WORK_WORLD = "PALCLA",
+    WORK_WORLD = "PALTELE",
     WORK_DOOR = "RAPOL2",
-    WORK_DOOR_TILE_X = 44,
+    WORK_DOOR_TILE_X = 41,
     WORK_DOOR_TILE_Y = 53,
-    WORK_ACCESS_X = 44,
+    WORK_ACCESS_X = 41,
     WORK_ACCESS_Y = 51,
 
     STORAGE_WORLD = "GIYUSEA",
-    STORAGE_DOOR = "ITEM",
-    STORAGE_DOOR_TILE_X = 40,
+    STORAGE_DOOR = "MOMOKS",
+    STORAGE_DOOR_TILE_X = 70,
     STORAGE_DOOR_TILE_Y = 23,
-    STORAGE_ACCESS_X = 41,
-    STORAGE_ACCESS_Y = 24,
+    STORAGE_ACCESS_X = 70,
+    STORAGE_ACCESS_Y = 23,
 
     DOOR_POSITION_TOLERANCE = 2,
     ACCESS_CHECK_TIMEOUT_MS = 8000,
     WRONG_SPAWN_BOUNCE_DELAY_MS = 1800,
 
-    AUTOCLAVE_X = 44,
-    AUTOCLAVE_Y = 50,
-    AUTOCLAVE_STAND_X = 44,
-    AUTOCLAVE_STAND_Y = 51,
+    NANOFORGE_X = 41,
+    NANOFORGE_Y = 50,
+    NANOFORGE_STAND_X = 41,
+    NANOFORGE_STAND_Y = 51,
 
     BUFFER_TILE_COUNT = 6,
 
     BUFFER_A_START_X = 25,
     BUFFER_A_Y = 53,
 
-    BUFFER_B_START_X = 54,
+    BUFFER_B_START_X = 49,
     BUFFER_B_Y = 53,
 
-    SAFE_START_X = 41,
-    SAFE_Y = 24,
+    SAFE_START_X = 70,
+    SAFE_Y = 23,
 
     INITIAL_ACTIVE_LANE = "A",
 
@@ -129,11 +128,11 @@ local C = {
     DROP_RETRIES = 3,
     DROP_SETTLE_MS = 450,
 
-    AUTOCLAVE_OPEN_DELAY_MS = 1200,
-    AUTOCLAVE_SELECT_DELAY_MS = 650,
-    AUTOCLAVE_RESULT_TIMEOUT_MS = 12000,
-    AUTOCLAVE_RESULT_POLL_MS = 150,
-    AUTOCLAVE_BETWEEN_TOOLS_MS = 500,
+    NANOFORGE_OPEN_DELAY_MS = 1200,
+    NANOFORGE_SELECT_DELAY_MS = 650,
+    NANOFORGE_RESULT_TIMEOUT_MS = 12000,
+    NANOFORGE_RESULT_POLL_MS = 150,
+    NANOFORGE_BETWEEN_TOOLS_MS = 500,
 
     EMPTY_WAIT_MS = 30000,
     CONTINUOUS = true,
@@ -142,9 +141,9 @@ local C = {
     MAX_BATCHES = 0, -- 0 = tanpa batas
 
     RESET_CHECKPOINT = false,
-    CHECKPOINT_PREFIX = "auto_autoclave_v1_2_",
+    CHECKPOINT_PREFIX = "auto_nanoforge_v1_0_",
 
-    LOG_FILE = "AUTO_AUTOCLAVE_MAIN_V1_2_LOG.txt",
+    LOG_FILE = "AUTO_NANOFORGE_MAIN_V1_0_LOG.txt",
 }
 
 C.WORK_WORLD = string.upper(C.WORK_WORLD)
@@ -155,38 +154,36 @@ C.STORAGE_WORLD = string.upper(C.STORAGE_WORLD)
 ---------------------------------------------------------------------
 
 local PROCESSING_TOOLS = {
-    {id = 1262, name = "Surgical Anesthetic"},
-    {id = 1264, name = "Surgical Antiseptic"},
-    {id = 4314, name = "Surgical Clamp"},
-    {id = 4312, name = "Surgical Defibrillator"},
-    {id = 4318, name = "Surgical Lab Kit"},
-    {id = 4308, name = "Surgical Pins"},
-    {id = 1268, name = "Surgical Splint"},
-    {id = 4310, name = "Surgical Transfusion"},
-    {id = 4316, name = "Surgical Ultrasound"},
+    {id = 6518, name = "HyperShields"},
+    {id = 6520, name = "AI Brain"},
+    {id = 6522, name = "Galactibolt"},
+    {id = 6524, name = "Space Meds"},
+    {id = 6528, name = "Gigablaster"},
+    {id = 6530, name = "Quadriscanner"},
+    {id = 6534, name = "Stellar Documents"},
+    {id = 6536, name = "Star Supplies"},
+    {id = 6538, name = "Cyborg Diplomat"},
+    {id = 6540, name = "Growton Torpedo"},
 }
 
 local PROTECTED_TOOLS = {
-    {id = 1266, name = "Surgical Antibiotics"},
-    {id = 1260, name = "Surgical Scalpel"},
-    {id = 1258, name = "Surgical Sponge"},
-    {id = 1270, name = "Surgical Stitches"},
+    {id = 6526, name = "Teleporter Charge"},
+    {id = 6532, name = "Tactical Drone"},
 }
 
 local ALL_TOOLS = {
-    {id = 1262, name = "Surgical Anesthetic"},
-    {id = 1266, name = "Surgical Antibiotics"},
-    {id = 1264, name = "Surgical Antiseptic"},
-    {id = 4314, name = "Surgical Clamp"},
-    {id = 4312, name = "Surgical Defibrillator"},
-    {id = 4318, name = "Surgical Lab Kit"},
-    {id = 4308, name = "Surgical Pins"},
-    {id = 1260, name = "Surgical Scalpel"},
-    {id = 1268, name = "Surgical Splint"},
-    {id = 1258, name = "Surgical Sponge"},
-    {id = 1270, name = "Surgical Stitches"},
-    {id = 4310, name = "Surgical Transfusion"},
-    {id = 4316, name = "Surgical Ultrasound"},
+    {id = 6518, name = "HyperShields"},
+    {id = 6520, name = "AI Brain"},
+    {id = 6522, name = "Galactibolt"},
+    {id = 6524, name = "Space Meds"},
+    {id = 6526, name = "Teleporter Charge"},
+    {id = 6528, name = "Gigablaster"},
+    {id = 6530, name = "Quadriscanner"},
+    {id = 6532, name = "Tactical Drone"},
+    {id = 6534, name = "Stellar Documents"},
+    {id = 6536, name = "Star Supplies"},
+    {id = 6538, name = "Cyborg Diplomat"},
+    {id = 6540, name = "Growton Torpedo"},
 }
 
 local PROCESSING_ID_SET = {}
@@ -206,25 +203,25 @@ end
 local bot = getBot()
 
 if bot == nil then
-    print("[AUTOCLAVE V1][FATAL] Bot tidak terdeteksi.")
+    print("[NANOFORGE V1][FATAL] Bot tidak terdeteksi.")
     return
 end
 
-_G.__AUTO_AUTOCLAVE_MAIN_V1 =
-    _G.__AUTO_AUTOCLAVE_MAIN_V1 or {}
+_G.__AUTO_NANOFORGE_MAIN_V1 =
+    _G.__AUTO_NANOFORGE_MAIN_V1 or {}
 
 local BOT_NAME = tostring(bot.name or "bot")
 local SAFE_BOT_NAME =
     BOT_NAME:gsub("[^%w_%-]", "_")
 
-if _G.__AUTO_AUTOCLAVE_MAIN_V1[BOT_NAME] == true then
+if _G.__AUTO_NANOFORGE_MAIN_V1[BOT_NAME] == true then
     print(
-        "[AUTOCLAVE V1][STOP] Script untuk bot ini sudah berjalan."
+        "[NANOFORGE V1][STOP] Script untuk bot ini sudah berjalan."
     )
     return
 end
 
-_G.__AUTO_AUTOCLAVE_MAIN_V1[BOT_NAME] = true
+_G.__AUTO_NANOFORGE_MAIN_V1[BOT_NAME] = true
 
 local CHECKPOINT =
     C.CHECKPOINT_PREFIX
@@ -237,7 +234,7 @@ local CHECKPOINT =
 
 local function log(tag, ...)
     local parts = {
-        "[AUTOCLAVE V1]",
+        "[NANOFORGE V1]",
         "[" .. tostring(tag) .. "]",
     }
 
@@ -261,7 +258,7 @@ local function releaseGuard()
         bot.collect_range = 0
     end)
 
-    _G.__AUTO_AUTOCLAVE_MAIN_V1[BOT_NAME] = nil
+    _G.__AUTO_NANOFORGE_MAIN_V1[BOT_NAME] = nil
 end
 
 local function fatal(...)
@@ -338,7 +335,7 @@ local function setStage(stage)
 
     pcall(function()
         bot.custom_status =
-            "AutoClave V1: "
+            "NanoForge V1: "
             .. tostring(stage)
             .. " | Lane "
             .. tostring(cp.active)
@@ -1490,7 +1487,7 @@ local function dropReserve(lane)
 end
 
 ---------------------------------------------------------------------
--- AUTOCLAVE ENGINE
+-- NANOFORGE ENGINE
 ---------------------------------------------------------------------
 
 local function buildRoundQueue()
@@ -1519,7 +1516,7 @@ local function buildRoundQueue()
     return queue
 end
 
-local function canAutoclaveSource(sourceId)
+local function canNanoforgeSource(sourceId)
     if invCount(sourceId) < 20 then
         return false,
             "source kurang dari 20"
@@ -1538,7 +1535,7 @@ local function canAutoclaveSource(sourceId)
     return true
 end
 
-local function sendRawAutoclaveOpen()
+local function sendRawNanoforgeOpen()
     local posX, posY = playerPixelPos()
 
     if posX == nil or posY == nil then
@@ -1551,18 +1548,18 @@ local function sendRawAutoclaveOpen()
     packet.int_data = 32
     packet.pos_x = posX
     packet.pos_y = posY
-    packet.int_x = C.AUTOCLAVE_X
-    packet.int_y = C.AUTOCLAVE_Y
+    packet.int_x = C.NANOFORGE_X
+    packet.int_y = C.NANOFORGE_Y
 
     log(
-        "AUTOCLAVE",
+        "NANOFORGE",
         "OPEN raw",
         "| pos",
         posX,
         posY,
         "| tile",
-        C.AUTOCLAVE_X,
-        C.AUTOCLAVE_Y
+        C.NANOFORGE_X,
+        C.NANOFORGE_Y
     )
 
     local ok = pcall(function()
@@ -1572,15 +1569,15 @@ local function sendRawAutoclaveOpen()
     return ok
 end
 
-local function sendAutoclaveSelect(itemId)
+local function sendNanoforgeSelect(itemId)
     local payload =
         "action|dialog_return\n"
-        .. "dialog_name|autoclave\n"
+        .. "dialog_name|star tool nanoforge\n"
         .. "tilex|"
-        .. tostring(C.AUTOCLAVE_X)
+        .. tostring(C.NANOFORGE_X)
         .. "|\n"
         .. "tiley|"
-        .. tostring(C.AUTOCLAVE_Y)
+        .. tostring(C.NANOFORGE_Y)
         .. "|\n"
         .. "buttonClicked|tool"
         .. tostring(itemId)
@@ -1589,15 +1586,15 @@ local function sendAutoclaveSelect(itemId)
     bot:sendPacket(2, payload)
 end
 
-local function sendAutoclaveVerify(itemId)
+local function sendNanoforgeVerify(itemId)
     local payload =
         "action|dialog_return\n"
-        .. "dialog_name|autoclave\n"
+        .. "dialog_name|star tool nanoforge\n"
         .. "tilex|"
-        .. tostring(C.AUTOCLAVE_X)
+        .. tostring(C.NANOFORGE_X)
         .. "|\n"
         .. "tiley|"
-        .. tostring(C.AUTOCLAVE_Y)
+        .. tostring(C.NANOFORGE_Y)
         .. "|\n"
         .. "itemID|"
         .. tostring(itemId)
@@ -1607,7 +1604,7 @@ local function sendAutoclaveVerify(itemId)
     bot:sendPacket(2, payload)
 end
 
-local function autoclaveResultMatches(
+local function nanoforgeResultMatches(
     before,
     sourceId
 )
@@ -1636,13 +1633,13 @@ local function autoclaveResultMatches(
     return true
 end
 
-local function autoclaveOnce(tool)
+local function nanoforgeOnce(tool)
     local safe, reason =
-        canAutoclaveSource(tool.id)
+        canNanoforgeSource(tool.id)
 
     if not safe then
         log(
-            "AUTOCLAVE",
+            "NANOFORGE",
             "Tidak aman:",
             tool.name,
             "|",
@@ -1654,7 +1651,7 @@ local function autoclaveOnce(tool)
     local before = snapshotAllTools()
 
     log(
-        "AUTOCLAVE",
+        "NANOFORGE",
         "SELECT",
         tool.name,
         "| before",
@@ -1662,17 +1659,17 @@ local function autoclaveOnce(tool)
     )
 
     local selectOK = pcall(function()
-        sendAutoclaveSelect(tool.id)
+        sendNanoforgeSelect(tool.id)
     end)
 
     if not selectOK then
         return false
     end
 
-    sleep(C.AUTOCLAVE_SELECT_DELAY_MS)
+    sleep(C.NANOFORGE_SELECT_DELAY_MS)
 
     local verifyOK = pcall(function()
-        sendAutoclaveVerify(tool.id)
+        sendNanoforgeVerify(tool.id)
     end)
 
     if not verifyOK then
@@ -1680,13 +1677,13 @@ local function autoclaveOnce(tool)
     end
 
     local completed = waitUntil(function()
-        return autoclaveResultMatches(
+        return nanoforgeResultMatches(
             before,
             tool.id
         )
     end,
-    C.AUTOCLAVE_RESULT_TIMEOUT_MS,
-    C.AUTOCLAVE_RESULT_POLL_MS)
+    C.NANOFORGE_RESULT_TIMEOUT_MS,
+    C.NANOFORGE_RESULT_POLL_MS)
 
     if not completed then
         local sourceBefore =
@@ -1696,7 +1693,7 @@ local function autoclaveOnce(tool)
             invCount(tool.id)
 
         log(
-            "AUTOCLAVE",
+            "NANOFORGE",
             "VERIFICATION FAIL",
             tool.name,
             "| source",
@@ -1706,7 +1703,7 @@ local function autoclaveOnce(tool)
         )
 
         log(
-            "AUTOCLAVE",
+            "NANOFORGE",
             "Tidak melakukan resend otomatis."
         )
 
@@ -1714,7 +1711,7 @@ local function autoclaveOnce(tool)
     end
 
     log(
-        "AUTOCLAVE",
+        "NANOFORGE",
         "SUCCESS",
         tool.name,
         "|",
@@ -1723,11 +1720,11 @@ local function autoclaveOnce(tool)
         invCount(tool.id)
     )
 
-    sleep(C.AUTOCLAVE_BETWEEN_TOOLS_MS)
+    sleep(C.NANOFORGE_BETWEEN_TOOLS_MS)
     return true
 end
 
-local function goToAutoclave()
+local function goToNanoforge()
     if not ensureWorld(
         C.WORK_WORLD,
         C.WORK_DOOR
@@ -1738,16 +1735,16 @@ local function goToAutoclave()
     setCollect(false)
 
     if not walkExact(
-        C.AUTOCLAVE_STAND_X,
-        C.AUTOCLAVE_STAND_Y
+        C.NANOFORGE_STAND_X,
+        C.NANOFORGE_STAND_Y
     ) then
         return false
     end
 
     local bx, by = botPos()
 
-    if bx ~= C.AUTOCLAVE_STAND_X
-        or by ~= C.AUTOCLAVE_STAND_Y
+    if bx ~= C.NANOFORGE_STAND_X
+        or by ~= C.NANOFORGE_STAND_Y
     then
         return false
     end
@@ -1760,21 +1757,21 @@ local function processOneRound(queue)
         return true, 0
     end
 
-    if not goToAutoclave() then
+    if not goToNanoforge() then
         return false, 0
     end
 
-    if not sendRawAutoclaveOpen() then
+    if not sendRawNanoforgeOpen() then
         return false, 0
     end
 
-    sleep(C.AUTOCLAVE_OPEN_DELAY_MS)
+    sleep(C.NANOFORGE_OPEN_DELAY_MS)
 
     local processed = 0
 
     for _, tool in ipairs(queue) do
         if invCount(tool.id) >= 20 then
-            if not autoclaveOnce(tool) then
+            if not nanoforgeOnce(tool) then
                 return false, processed
             end
 
@@ -1918,7 +1915,7 @@ end
 
 local function main()
     log("SYSTEM", "==========================================")
-    log("SYSTEM", "AUTO AUTOCLAVE MAIN V1.2")
+    log("SYSTEM", "AUTO NANOFORGE MAIN V1.0")
     log("SYSTEM", "Bot:", BOT_NAME)
     log(
         "SYSTEM",
@@ -2116,7 +2113,7 @@ local function main()
                 saveCP()
 
                 -- Jangan warp storage setelah satu round.
-                -- Rebuild queue dan terus clave sampai semua source <20.
+                -- Rebuild queue dan terus forge sampai semua source <20.
                 setStage("PROCESS")
             end
         end
