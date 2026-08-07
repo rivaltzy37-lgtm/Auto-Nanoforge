@@ -335,7 +335,7 @@ local function setStage(stage)
 
     pcall(function()
         bot.custom_status =
-            "NanoForge V1: "
+            "AutoNanoforge V1: "
             .. tostring(stage)
             .. " | Lane "
             .. tostring(cp.active)
@@ -1658,6 +1658,16 @@ local function nanoforgeOnce(tool)
         before[tool.id]
     )
 
+    local openOK = pcall(function()
+        sendRawNanoforgeOpen()
+    end)
+
+    if not openOK then
+        return false
+    end
+
+    sleep(C.NANOFORGE_OPEN_DELAY_MS)
+
     local selectOK = pcall(function()
         sendNanoforgeSelect(tool.id)
     end)
@@ -1760,12 +1770,6 @@ local function processOneRound(queue)
     if not goToNanoforge() then
         return false, 0
     end
-
-    if not sendRawNanoforgeOpen() then
-        return false, 0
-    end
-
-    sleep(C.NANOFORGE_OPEN_DELAY_MS)
 
     local processed = 0
 
