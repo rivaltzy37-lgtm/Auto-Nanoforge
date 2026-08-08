@@ -1,0 +1,177 @@
+name: Patch Nanoforge state once
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Patch Nanoforge state machine
+        shell: python
+        run: |
+          from pathlib import Path
+
+          path = Path("lucifer_auto_autoclave_main_v1_2_phase_and_warp_fix.lua")
+          text = path.read_text(encoding="utf-8")
+          marker = "NANOFORGE BUFFER-B DIRECT-A FIX"
+
+          if marker in text:
+              print("Patch already present; nothing to do.")
+          else:
+              old_take = '''        if cp.stage == "TAKE_RESERVE" then
+            local lane = passiveLane()
+
+            log(
+                "RESERVE",
+                "Ambil reserve dari lane",
+                lane.name
+            )
+
+            if not sweepLane(lane) then
+                return fatal(
+                    "Gagal ambil reserve lane ",
+                    lane.name
+                )
+            end
+
+            cp.reserve_pending = 0
+            saveCP()
+
+            setStage("PROCESS")
+        end'''
+
+              new_take = '''        if cp.stage == "TAKE_RESERVE" then
+            local lane = passiveLane()
+
+            log(
+                "RESERVE",
+                "Ambil reserve dari lane",
+                lane.name
+            )
+
+            if not sweepLane(lane) then
+                return fatal(
+                    "Gagal ambil reserve lane ",
+                    lane.name
+                )
+            end
+
+            cp.reserve_pending = 0
+            saveCP()
+
+            -- NANOFORGE BUFFER-B DIRECT-A FIX:
+            -- Setelah reserve diambil, cek inventory SEKARANG.
+            -- Kalau semua reserve sudah <20, jangan masuk PROCESS/Nanoforge.
+            -- Kembalikan residual ke buffer B lalu langsung lanjut ke buffer A
+            -- (atau buffer lawan secara umum) untuk batch berikutnya.
+            if #buildRoundQueue() == 0 then
+                log(
+                    "RESERVE",
+                    "Semua reserve <20. Langsung lanjut ke buffer berikutnya."
+                )
+
+                if processingTotal() > 0 then
+                    if not dropAllProcessing(lane) then
+                        return fatal(
+                            "Gagal mengembalikan residual reserve ke lane ",
+                            lane.name
+                        )
+                    end
+                end
+
+                cp.active = otherLaneName(lane.name)
+                cp.batch_round = 0
+                cp.stage = "COLLECT_ACTIVE"
+                saveCP()
+            else
+                setStage("PROCESS")
+            end
+        end'''
+
+              if old_take not in text:
+                  raise SystemExit("TAKE_RESERVE block not found; aborting without changes.")
+
+              text = text.replace(old_take, new_take, 1)
+
+              old_process = '''            if #queue == 0 then
+                -- Semua processing tool yang sedang dibawa sudah <20.
+                -- Baru sekarang protected tools dikirim ke storage.
+                setStage("STORE_PHASE")
+            else'''
+
+              new_process = '''            if #queue == 0 then
+                -- Setelah reserve selesai (reserve_pending == 0), queue kosong
+                -- berarti jangan pernah kembali ke Nanoforge/Storage phase.
+                -- Drop residual <20 ke passive buffer lalu langsung ambil batch
+                -- dari buffer berikutnya.
+                if cp.reserve_pending == 0 then
+                    local lane = passiveLane()
+
+                    log(
+                        "RESERVE",
+                        "Queue kosong setelah reserve. Skip Nanoforge dan lanjut batch berikutnya."
+                    )
+
+                    if processingTotal() > 0 then
+                        if not dropAllProcessing(lane) then
+                            return fatal(
+                                "Gagal drop residual reserve ke lane ",
+                                lane.name
+                            )
+                        end
+                    end
+
+                    cp.active = otherLaneName(lane.name)
+                    cp.batch_round = 0
+                    cp.stage = "COLLECT_ACTIVE"
+                    saveCP()
+                else
+                    -- Semua processing tool yang sedang dibawa sudah <20.
+                    -- Baru sekarang protected tools dikirim ke storage.
+                    setStage("STORE_PHASE")
+                end
+            else'''
+
+              if old_process not in text:
+                  raise SystemExit("PROCESS queue-empty block not found; aborting without changes.")
+
+              text = text.replace(old_process, new_process, 1)
+              text = text.replace(
+                  "-- NANOFORGE BUFFER-B DIRECT-A FIX:\n",
+                  "-- NANOFORGE BUFFER-B DIRECT-A FIX\n",
+                  1,
+              )
+              path.write_text(text, encoding="utf-8")
+              print("Nanoforge state-machine patch applied.")
+
+      - name: Commit patched source
+        shell: bash
+        run: |
+          if git diff --quiet -- lucifer_auto_autoclave_main_v1_2_phase_and_warp_fix.lua; then
+            echo "No source changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lucifer_auto_autoclave_main_v1_2_phase_and_warp_fix.lua
+          git commit -m "Fix Nanoforge buffer B to buffer A transition"
+          git push
+
+      - name: Remove one-shot patch workflow
+        shell: bash
+        run: |
+          git rm .github/workflows/patch_nanoforge_state_once.yml || true
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Remove one-shot Nanoforge patch workflow" || true
+          git push || true
